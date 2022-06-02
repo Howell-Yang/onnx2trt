@@ -1,0 +1,2 @@
+
+# 使用onnx的quantize tools生成每个节点的scales和zero point, 并转换为tensorRT可用的calibration cache file(后续需要用tensorrt模型转换工具生成trt engine)
