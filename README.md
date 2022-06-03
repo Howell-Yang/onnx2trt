@@ -1,2 +1,3 @@
 # onnx2trt
 
+onnx2trt是用于进行tensorRT的int8模型量化的工具; 在进行int8模型量化时，某些int8 tensorRT模型的精度会出现一定程度的下降。而当前tensorRT默认使用的校准算法是Entropy, 为此特意开发onnx2trt工具来优化量化模型的精度。

@@ -9,7 +9,8 @@ import numpy as np
 import glob
 
 __all__ = [
-    "ImageBatchStream" "TRTPercentileCalibrator",
+    "ImageBatchStream",
+    "TRTPercentileCalibrator",
     "TRTEntropyCalibrator",
     "TRTMinMaxCalibrator",
 ]
@@ -24,8 +25,8 @@ class ImageBatchStream:
         CHANNEL=3,
         batch_size=1,
         pixel_type="RGB",
-        means = (0.0,0.0,0.0),
-        stds = (1.0,1.0,1.0),
+        means=(0.0, 0.0, 0.0),
+        stds=(1.0, 1.0, 1.0),
         channel_order="NCHW",
     ):
         self.batch_size = batch_size
@@ -49,21 +50,23 @@ class ImageBatchStream:
         self.batch = 0
 
     @staticmethod
-    def read_image(path, WIDTH, HEIGHT, CHANNEL, means, scales, channel_order, pixel_type):
+    def read_image(
+        path, WIDTH, HEIGHT, CHANNEL, means, scales, channel_order, pixel_type
+    ):
         img = Image.open(path).convert("RGB").resize((WIDTH, HEIGHT), Image.BICUBIC)
         img = np.array(img, dtype=np.float32, order="C")
-        
+
         # RGB vs BGR
         if channel_order == "BGR":
-            img = img[:,:,::-1]
-        
+            img = img[:, :, ::-1]
+
         if np.max(means) < 1.0 and np.max(scales) < 1.0:
             means = np.array(means) * 255.0
             scales = np.array(scales) * 255.0
 
         for i in range(CHANNEL):
             img[:, :, i] = (img[:, :, i] - means[i]) / scales[i]
-        
+
         # NCHW vs NHWC
         if pixel_type == "NCHW":
             img = img.transpose(2, 0, 1)  # HWC --> CHW
@@ -83,14 +86,15 @@ class ImageBatchStream:
 
             for f in files_for_batch:
                 img = ImageBatchStream.read_image(
-                    f, 
-                    self.WIDTH, 
-                    self.HEIGHT, 
-                    self.CHANNEL, 
-                    self.means, 
-                    self.stds, 
-                    self.channel_order, 
-                    self.pixel_type)
+                    f,
+                    self.WIDTH,
+                    self.HEIGHT,
+                    self.CHANNEL,
+                    self.means,
+                    self.stds,
+                    self.channel_order,
+                    self.pixel_type,
+                )
                 imgs.append(img)
             for i in range(len(imgs)):
                 self.calibration_data[i] = imgs[i]
@@ -189,7 +193,9 @@ class TRTMinMaxCalibrator(trt.IInt8MinMaxCalibrator):
 
 
 class TRTPercentileCalibrator(trt.IInt8LegacyCalibrator):
-    def __init__(self, input_layers, stream, cache_file, quantile = 0.9995, regression_cutoff = 1.0):
+    def __init__(
+        self, input_layers, stream, cache_file, quantile=0.9995, regression_cutoff=1.0
+    ):
         super(TRTPercentileCalibrator, self).__init__()
         self.input_layers = input_layers
         self.stream = stream
@@ -224,3 +230,15 @@ class TRTPercentileCalibrator(trt.IInt8LegacyCalibrator):
         # cache = ctypes.c_char_p(int(ptr))
         with open(self.cache_file, "wb") as f:
             f.write(cache)
+
+    def get_quantile(self):
+        return self.quantile
+
+    def get_regression_cutoff(self):
+        return self.regression_cutoff
+
+    def read_histogram_cache(self, length):
+        return None
+
+    def write_histogram_cache(self, ptr, length):
+        return None
