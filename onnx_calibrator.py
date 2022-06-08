@@ -1,4 +1,4 @@
-#coding: utf-8
+# coding: utf-8
 import abc
 import json
 import numpy as np
@@ -7,25 +7,39 @@ import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit  # fix init error of cuda
 import os
-from onnxruntime.quantization.calibrate import CalibrationDataReader, MinMaxCalibrater, EntropyCalibrater, PercentileCalibrater
 import onnx
 import struct
+from onnxruntime.quantization.calibrate import (
+    CalibrationDataReader,
+    MinMaxCalibrater,
+    EntropyCalibrater,
+    PercentileCalibrater,
+)
 
 # 使用onnx的quantize tools生成每个节点的scales和zero point
 # 并转换为tensorRT可用的calibration cache file
 # 后续需要用tensorrt模型转换工具生成trt engine
 class ONNXDataReader(CalibrationDataReader):
-    def __init__(self, input_name, image_stream):
+    def __init__(self, input_name, image_stream, max_iter_num=None):
         super(ONNXDataReader).__init__()
         self.input_name = input_name
         self.image_stream = image_stream
+        self.max_iter_num = max_iter_num
+        self.iter_num = 0
 
     def get_next(self) -> dict:
-        batch = self.stream.next_batch()
+        self.iter_num += 1
+        if self.iter_num > self.max_iter_num:
+            return None
+        batch = self.image_stream.next_batch()
         if not batch.size:
             return None
         """generate the input data dict for ONNXinferenceSession run"""
-        return {self.input_name: batch, "image_shape": np.asarray([[self.stream.width, self.stream.height]], dtype=np.float32)}
+        return {
+            self.input_name: batch,
+            # "image_shape": np.asarray([[self.image_stream.WIDTH, self.image_stream.HEIGHT]], dtype=np.float32),
+        }
+
 
 class ONNXCalibrator(trt.IInt8EntropyCalibrator2):
     def __init__(self, input_layers, stream, cache_file, calib_algo, onnx_model_path):
@@ -46,8 +60,15 @@ class ONNXCalibrator(trt.IInt8EntropyCalibrator2):
 
         # 使用onnx的calibrator来统计每个节点的dynamic range
         calibrator = self.create_calibrator(calib_algo, onnx_model_path)
-        data_reader = ONNXDataReader(self.input_layers[0], self.stream)
-        calibrator.collect_data(data_reader)
+        calibrator.set_execution_providers(
+            ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        )
+        each_iter_num = 1
+        for i in range(self.stream.max_batches // each_iter_num):
+            data_reader = ONNXDataReader(
+                self.input_layers[0], self.stream, each_iter_num
+            )
+            calibrator.collect_data(data_reader)
         self.write_calibration_table(calibrator.compute_range(), self.cache_file)
 
     @staticmethod
@@ -56,7 +77,9 @@ class ONNXCalibrator(trt.IInt8EntropyCalibrator2):
         Helper function to write calibration table to files.
         """
         with open(save_path + "_calib_cache.json", "w") as file:
-            file.write(json.dumps(calibration_cache))  # use `json.loads` to do the reverse
+            file.write(
+                json.dumps(calibration_cache)
+            )  # use `json.loads` to do the reverse
 
         # write plain text: tensorRT需要对结果做转换
         # TRT-8400-EntropyCalibration2
@@ -69,7 +92,7 @@ class ONNXCalibrator(trt.IInt8EntropyCalibrator2):
             for key in sorted(calibration_cache.keys()):
                 value = calibration_cache[key]
                 scale = max(abs(value[0]), abs(value[1]))
-                scale_hex = hex(struct.unpack('<I', struct.pack('<f', scale))[0])
+                scale_hex = hex(struct.unpack("<I", struct.pack("<f", scale))[0])
                 s = key + ": " + str(scale_hex).lstrip("0x")
                 file.write(s)
                 file.write("\n")
@@ -77,46 +100,46 @@ class ONNXCalibrator(trt.IInt8EntropyCalibrator2):
     @staticmethod
     def create_calibrator(calib_algo, onnx_model_path):
         augmented_model_path = onnx_model_path.replace(".onnx", "_calib.onnx")
-        if calib_algo == "ONNXMinMaxCalibrator":
+        if calib_algo == "ONNXMinMax":
             # default settings for min-max algorithm
-            symmetric = True # tensorRT使用的是对称量化
-            moving_average = True
-            averaging_constant = 0.01
+            # symmetric = True  # tensorRT使用的是对称量化
+            # moving_average = True
+            # averaging_constant = 0.01
             return MinMaxCalibrater(
                 onnx_model_path,
                 op_types_to_calibrate=[],
                 augmented_model_path=augmented_model_path,
-                use_external_data_format=False,
-                symmetric=symmetric,
-                moving_average=moving_average,
-                averaging_constant=averaging_constant,
+                # use_external_data_format=False,
+                # symmetric=symmetric,
+                # moving_average=moving_average,
+                # averaging_constant=averaging_constant,
             )
-        elif calib_algo == "ONNXEntropyCalibrator":
+        elif calib_algo == "ONNXEntropy":
             # default settings for entropy algorithm
-            num_bins = 128
+            # num_bins = 128
             num_quantized_bins = 128
-            symmetric = True
+            # symmetric = True
             return EntropyCalibrater(
                 onnx_model_path,
-                 op_types_to_calibrate=[],
+                op_types_to_calibrate=[],
                 augmented_model_path=augmented_model_path,
-                use_external_data_format=False,
-                symmetric=symmetric,
-                num_bins=num_bins,
+                # use_external_data_format=False,
+                # symmetric=symmetric,
+                # num_bins=num_bins,
                 num_quantized_bins=num_quantized_bins,
             )
-        elif calib_algo == "ONNXPercentileCalibrator":
+        elif calib_algo == "ONNXPercentile":
             # default settings for percentile algorithm
-            num_bins = 2048
+            num_quantized_bins = 2048
             percentile = 99.95
-            symmetric = True
+            # symmetric = True
             return PercentileCalibrater(
                 onnx_model_path,
-                 op_types_to_calibrate=[],
+                op_types_to_calibrate=[],
                 augmented_model_path=augmented_model_path,
-                use_external_data_format=False,
-                symmetric=symmetric,
-                num_bins=num_bins,
+                # use_external_data_format=False,
+                # symmetric=symmetric,
+                num_quantized_bins=num_quantized_bins,
                 percentile=percentile,
             )
 

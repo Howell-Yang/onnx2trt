@@ -3,16 +3,13 @@ import os
 import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit  # fix init error of cuda
-from PIL import Image
-import numpy as np
-import glob
-from utils import ImageBatchStream
 
-__all__ = [
-    "TRTPercentileCalibrator",
-    "TRTEntropyCalibrator",
-    "TRTMinMaxCalibrator",
-]
+# __all__ = [
+#     "TRTPercentileCalibrator",
+#     "TRTEntropyCalibrator",
+#     "TRTMinMaxCalibrator",
+# ]
+
 
 class TRTEntropyCalibrator(trt.IInt8EntropyCalibrator2):
     def __init__(self, input_layers, stream, cache_file):

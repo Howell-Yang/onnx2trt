@@ -8,13 +8,18 @@ import onnx
 import onnxruntime
 import time
 import numpy as np
+import glob
+import os
 from sklearn.metrics.pairwise import cosine_similarity
+from PIL import Image
 from trt_calibrator import (
     TRTEntropyCalibrator,
     TRTMinMaxCalibrator,
     TRTPercentileCalibrator,
 )
 from onnx_calibrator import ONNXCalibrator
+
+
 class ImageBatchStream:
     def __init__(
         self,
@@ -102,6 +107,7 @@ class ImageBatchStream:
         else:
             return np.array([])
 
+
 def create_image_stream(
     calib_dir, input_shapes, means, stds, pixel_type, channel_order
 ):
@@ -124,18 +130,24 @@ def create_image_stream(
     return image_stream
 
 
-def create_calibrator(image_stream, input_names, trt_calib_cache, calib_algo, onnx_model_path = None):
-    CALIB_ALGO_MAP = {
+def create_calibrator(
+    image_stream, input_names, trt_calib_cache, calib_algo, onnx_model_path=None
+):
+    TRT_CALIB_ALGO_MAP = {
         "TRTEntropy": TRTEntropyCalibrator,
         "TRTMinMax": TRTMinMaxCalibrator,
         "TRTPercentile": TRTPercentileCalibrator,
     }
-    if calib_algo in CALIB_ALGO_MAP:
-        CalibratorType = CALIB_ALGO_MAP[calib_algo]
+    if calib_algo in TRT_CALIB_ALGO_MAP:
+        CalibratorType = TRT_CALIB_ALGO_MAP[calib_algo]
         calibrator = CalibratorType(input_names, image_stream, trt_calib_cache)
     else:
-        assert onnx_model_path is not None, "onnx model path must be provided for Onnx Calibrator"
-        CalibratorType = ONNXCalibrator(input_names, image_stream, trt_calib_cache, calib_algo, onnx_model_path)
+        assert (
+            onnx_model_path is not None
+        ), "onnx model path must be provided for Onnx Calibrator"
+        CalibratorType = ONNXCalibrator(
+            input_names, image_stream, trt_calib_cache, calib_algo, onnx_model_path
+        )
     return calibrator
 
 
@@ -238,8 +250,8 @@ def do_inference_v2(context, bindings, inputs, outputs, stream):
 
 
 def evaluate_engine(onnx_path, engine, image_stream):
-    onnx_model = onnx.load_model(onnx_path)
-    sess = onnxruntime.InferenceSession(onnx_model.SerializeToString())
+    # onnx_model = onnx.load_model(onnx_path)
+    sess = onnxruntime.InferenceSession(onnx_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
     inputs_memo, outputs_memo, bindings, stream, trt_output_names = allocate_buffers(
         engine
     )
@@ -286,4 +298,3 @@ def evaluate_engine(onnx_path, engine, image_stream):
         image_data = image_stream.next_batch()
 
     return np.mean(cos_similarity), np.mean(infer_time)
-
