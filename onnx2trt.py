@@ -12,6 +12,7 @@ from google.protobuf.json_format import MessageToDict
 import onnx
 import numpy as np
 from utils import create_image_stream, create_calibrator, create_tensorrt_engine, evaluate_engine
+from onnxruntime.tools.symbolic_shape_infer import SymbolicShapeInference
 
 parser = argparse.ArgumentParser(description="Onnx Calibration Params")
 parser.add_argument("--onnx", type=str, default=None, required=True, help="原始的onnx路径")
@@ -43,7 +44,7 @@ parser.add_argument(
     type=str,
     default=None,
     required=False,
-    choices=["Search", "TRTEntropy", "TRTMinMax", "TRTPercentile"],
+    choices=["Search", "TRTEntropy", "TRTMinMax", "TRTPercentile", "ONNXEntropy"],
     help="""量化校准使用的算法:
     Search 进行自动化搜索, 自动选择最终输出的cosine距离最高的校准算法
     TRTEntropy 使用交叉熵评估量化前后的量化误差,自动选择误差最小的动态范围值
@@ -91,6 +92,16 @@ channel_order = args.channel_order
 INPUT_SHAPES = []
 INPUT_NAMES = []
 onnx_model = onnx.load(onnx_path)
+onnx_model = SymbolicShapeInference.infer_shapes(
+        onnx_model,
+        int_max = 2**31 - 1,
+        auto_merge = True,
+        guess_output_rank = True,
+        verbose = 3,
+    )
+onnx_path = onnx_path.replace(".onnx", "") + "_with_shape.onnx"
+onnx_model.save(onnx_path)
+
 for _input in onnx_model.graph.input:
     m_dict = MessageToDict(_input)
     dim_info = m_dict.get("type").get("tensorType").get("shape").get("dim")
@@ -117,7 +128,7 @@ if engine_type == "int8":
     final_engine = None
     for calibrator_type in search_types:
         calibrator = create_calibrator(
-            image_stream, INPUT_NAMES, trt_calib_cache, calib_algo
+            image_stream, INPUT_NAMES, trt_calib_cache, calib_algo, onnx_model
         )
         engine = create_tensorrt_engine(onnx_path, engine_type, calibrator)
         cos_similarity, infer_time = evaluate_engine(onnx_path, engine, image_stream)

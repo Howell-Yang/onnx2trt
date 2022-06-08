@@ -14,7 +14,7 @@ from trt_calibrator import (
     TRTMinMaxCalibrator,
     TRTPercentileCalibrator,
 )
-
+from onnx_calibrator import ONNXCalibrator
 class ImageBatchStream:
     def __init__(
         self,
@@ -124,14 +124,18 @@ def create_image_stream(
     return image_stream
 
 
-def create_calibrator(image_stream, input_names, trt_calib_cache, calib_algo):
+def create_calibrator(image_stream, input_names, trt_calib_cache, calib_algo, onnx_model_path = None):
     CALIB_ALGO_MAP = {
         "TRTEntropy": TRTEntropyCalibrator,
         "TRTMinMax": TRTMinMaxCalibrator,
         "TRTPercentile": TRTPercentileCalibrator,
     }
-    CalibratorType = CALIB_ALGO_MAP[calib_algo]
-    calibrator = CalibratorType(input_names, image_stream, trt_calib_cache)
+    if calib_algo in CALIB_ALGO_MAP:
+        CalibratorType = CALIB_ALGO_MAP[calib_algo]
+        calibrator = CalibratorType(input_names, image_stream, trt_calib_cache)
+    else:
+        assert onnx_model_path is not None, "onnx model path must be provided for Onnx Calibrator"
+        CalibratorType = ONNXCalibrator(input_names, image_stream, trt_calib_cache, calib_algo, onnx_model_path)
     return calibrator
 
 
