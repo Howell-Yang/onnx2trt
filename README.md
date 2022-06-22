@@ -1,6 +1,11 @@
-# onnx2trt
+# onnx2trt  
+
+
+【DEPRECATED】 开发过程中，发现了一个整体思路与我这个repo类似，但功能更完善，且实现了一些高级算法的repo，建议使用这个repo来进行模型量化和部署； https://github.com/openppl-public/ppq
+
 
 onnx2trt是用于进行tensorRT的int8模型量化的工具; 在进行int8模型量化时，某些int8 tensorRT模型的精度会出现一定程度的下降。而当前tensorRT默认使用的校准算法是Entropy, 为此特意开发onnx2trt工具来优化量化模型的精度。
+
 
 
 ## 安装
@@ -10,12 +15,6 @@ pip install nvidia-pyindex
 pip install nvidia-tensorrt
 pip install pycuda
 pip install sympy
-
-
-
-## 使用
-
-
 
 
 
