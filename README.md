@@ -33,12 +33,12 @@ pip install sympy
    但是如果这里输出的是分数score的话，就会带来一些不利于实际部署的结果：例如recall降低，precision升高的变化；这时需要重新调整阈值来维持precision或者recall不变，以保证模型部署的效果。
 
 
-TODO:
-[] QDQ量化工具: 使用QDQ方式进行tensorRT的模型量化
-[] 量化精度损失分析工具:
-   - 给定每个节点的量化scale值，计算每一层的量化前后的cosine值
-   - 给定每个节点的量化scale值，计算这一层量化对最终输出的莲花cosine值
-[] 自定义scale计算工具/自定义calibrator: 
-   - 用于trt exec生成trt engine(隐式设置精度)
-   - 用于QDQ生成trt engine(显式设置精度)
+TODO:  
+- [ ] QDQ量化工具: 使用QDQ方式进行tensorRT的模型量化.  
+- [ ] 量化精度损失分析工具:     
+   - 给定每个节点的量化scale值，计算每一层的量化前后的cosine值.   
+   - 给定每个节点的量化scale值，计算这一层量化对最终输出的莲花cosine值.   
+- [ ] 自定义scale计算工具/自定义calibrator:     
+   - 用于trt exec生成trt engine(隐式设置精度). 
+   - 用于QDQ生成trt engine(显式设置精度). 
 
