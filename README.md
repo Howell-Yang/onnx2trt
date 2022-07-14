@@ -4,6 +4,7 @@
 【DEPRECATED】 开发过程中，发现了一个整体思路与我这个repo类似，但功能更完善，且实现了一些高级算法的repo，建议使用这个repo来进行模型量化和部署； https://github.com/openppl-public/ppq
 
 
+
 onnx2trt是用于进行tensorRT的int8模型量化的工具; 在进行int8模型量化时，某些int8 tensorRT模型的精度会出现一定程度的下降。而当前tensorRT默认使用的校准算法是Entropy, 为此特意开发onnx2trt工具来优化量化模型的精度。
 
 
@@ -11,10 +12,10 @@ onnx2trt是用于进行tensorRT的int8模型量化的工具; 在进行int8模型
 ## 安装
 python36 (py37会遇到pycuda安装的问题)
 
-pip install nvidia-pyindex
-pip install nvidia-tensorrt
-pip install pycuda
-pip install sympy
+pip install nvidia-pyindex 
+pip install nvidia-tensorrt  
+pip install pycuda  
+pip install sympy  
 
 
 
@@ -31,4 +32,13 @@ pip install sympy
    如果这个输出后接的是softmax结构的话，这种阈值偏移对最终精度的影响会比较小；
    但是如果这里输出的是分数score的话，就会带来一些不利于实际部署的结果：例如recall降低，precision升高的变化；这时需要重新调整阈值来维持precision或者recall不变，以保证模型部署的效果。
 
+
+TODO:
+[] QDQ量化工具: 使用QDQ方式进行tensorRT的模型量化
+[] 量化精度损失分析工具:
+   - 给定每个节点的量化scale值，计算每一层的量化前后的cosine值
+   - 给定每个节点的量化scale值，计算这一层量化对最终输出的莲花cosine值
+[] 自定义scale计算工具/自定义calibrator: 
+   - 用于trt exec生成trt engine(隐式设置精度)
+   - 用于QDQ生成trt engine(显式设置精度)
 
