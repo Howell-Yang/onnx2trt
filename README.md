@@ -35,6 +35,8 @@ pip install sympy
 
 TODO:  
 - [ ] QDQ量化工具: 使用QDQ方式进行tensorRT的模型量化.  
+   - <img width="1000" alt="image" src="https://user-images.githubusercontent.com/100257957/180491664-ec2fc0ab-db9b-45b1-a758-8d718a217ecc.png">
+   - 需要直到tensorRT做了哪些网络节点的优化，才能方便地插入QDQ节点；
 - [ ] 量化精度损失分析工具:    
    - tensorRT自带量化分析工具polygraph: https://zhuanlan.zhihu.com/p/535021438 
    - 分析流程示例：https://blog.csdn.net/TracelessLe/article/details/120656484
