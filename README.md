@@ -35,7 +35,8 @@ pip install sympy
 
 TODO:  
 - [ ] QDQ量化工具: 使用QDQ方式进行tensorRT的模型量化.  
-- [ ] 量化精度损失分析工具:     
+- [ ] 量化精度损失分析工具:    
+   - tensorRT自带量化分析工具polygraph: https://zhuanlan.zhihu.com/p/535021438 
    - 给定每个节点的量化scale值，计算每一层的量化前后的cosine值.   
    - 给定每个节点的量化scale值，计算这一层量化对最终输出的莲花cosine值.   
 - [ ] 自定义scale计算工具/自定义calibrator:     
