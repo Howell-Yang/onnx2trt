@@ -31,6 +31,7 @@ pip install sympy
    例如：fp32_out = [-6.223839, 3.5978181, -2.4270086], int8_out = [-2.37992859, 1.80094731, -1.93005347]
    如果这个输出后接的是softmax结构的话，这种阈值偏移对最终精度的影响会比较小；
    但是如果这里输出的是分数score的话，就会带来一些不利于实际部署的结果：例如recall降低，precision升高的变化；这时需要重新调整阈值来维持precision或者recall不变，以保证模型部署的效果。
+   bias correction相关: https://zhuanlan.zhihu.com/p/450227567
 
 
 TODO:  
