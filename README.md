@@ -1,4 +1,4 @@
-# ONNX2TRT: 端上模型部署
+# ONNX2TRT: 端上模型部署[整理中]
 
 
 ## 1. 概述
@@ -77,21 +77,6 @@ optimize
 sigmoid移除
 
 
-模型导出为onnx
-模型结构优化: optimize、simplify、预处理融合、
-PTQ量化
-量化效果评估: 速度&精度
-简单PTQ量化
-自定义scale值
-量化问题排查工具polgygraph
-QAT量化
-QDQ
-
-
-
-
-
-
 ### 3.1 量化
 
 *3.1.1 量化的理论基础* 
@@ -122,33 +107,9 @@ QDQ
 3.3 蒸馏
 
 
-## 3. 模型部署
-
-一般步骤:  
-- 模型导出为onnx  
-- 模型结构优化: optimize、simplify、预处理融合、sigmoid移除  
-- PTQ量化
-    - 量化效果评估: 速度&精度
-    - 简单PTQ量化
-    - 自定义scale值
-    - 量化问题排查工具polgygraph
-- QAT量化
-    - QDQ
-    - 
-    - 
-
-
-
-
-## 5. 参考
-
-模型量化：
-
-模型部署：
-1. tiny-tensorRT
-2. micronet
-3. ppq
-4. onnx-runtime quantization
-5. ppl
-6. polygraphy
-7 
+## 4. 参考
+1. tiny-tensorRT: https://github.com/zerollzeng/tiny-tensorrt
+2. micronet: https://github.com/666DZY666/micronet
+3. ppq: https://github.com/openppl-public/ppq
+4. onnx-runtime quantization: https://onnxruntime.ai/docs/performance/quantization.html
+5. polygraphy: https://github.com/NVIDIA/TensorRT/tree/main/tools/Polygraphy
