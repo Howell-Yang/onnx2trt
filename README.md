@@ -75,8 +75,10 @@ optimize的目的是进行算子的融合, 从而减少计算量；例如fuse_bn
 ![fuse_bn](https://pic1.zhimg.com/v2-98dbfa847caf6d9c9d411348592c8815_1440w.jpg)
 
 <br>
-simplify的目的是消除onnx模型中的多余算子。从torch得到的onnx模型中，会存在一些从tensor计算出常量的操作，例如Reshape算子会从tensor中获取形状后给Resize算子；这就导致onnx模型中存在某些不必要的节点(最常见的是Gather节点)；因此，[onnx-simplifier](https://github.com/daquexian/onnx-simplifier)会对整个网络进行一次推理，然后将这类多余的算子替换成常量；
+simplify的目的是消除onnx模型中的多余算子。从torch得到的onnx模型中，会存在一些从tensor计算出常量的操作，例如Reshape算子会从tensor中获取形状后给Resize算子；这就导致onnx模型中存在某些不必要的节点(最常见的是Gather节点)；因此，[onnx-simplifier](https://github.com/daquexian/onnx-simplifier)会对整个网络进行一次推理，然后将这类多余的算子替换成常量.
+
 ![simplify](https://github.com/daquexian/onnx-simplifier/raw/master/imgs/complicated_reshape.png)
+
 <br>
 
 使用在线网站，可以便捷地进行以上操作：https://www.convertmodel.com/#input=onnx&output=onnx；
