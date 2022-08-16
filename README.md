@@ -1,49 +1,154 @@
-# onnx2trt  
+# ONNX2TRT: 端上模型部署
 
 
-【DEPRECATED】 开发过程中，发现了一个整体思路与我这个repo类似，但功能更完善，且实现了一些高级算法的repo，建议使用这个repo来进行模型量化和部署； https://github.com/openppl-public/ppq
+## 1. 概述
+
+模型的压缩(蒸馏、剪枝、量化)和部署，是模型在自动驾驶和物联网产业落地中的重要步骤。端上的设备
+
+在实际工作过程中，我们遇到了很多的困难: 文档缺失、依赖库冲突、算子不支持、精度差、速度慢等。
+
+因此，我将我在实际工作过程中的一些经验，整理成文档记录在这里，供其它开发者参考。同时，我会将过程中用到的一些脚本，整理成一些独立的工具脚本，方便大家使用。
+
+<br>
+
+## 2. 模型部署流程
+
+模型部署的一般步骤为:
+- 模型导出onnx
+- onnx模型结构优化
+- 模型量化，构建tensorRT的engine
+- tensorRT模型部署
+- 精度和速度测试
+- 问题排查与分析
+
+接下来，我将给出相关的工具，并对其中的关键步骤进行详细说明；
+
+<br>
+
+### 2.1 模型导出
+onnx是一种模型表示方式，能够将不同框架下的模型，统一表示为同一种形式；因此，尝尝被用来作为模型转换的中间节点；目前，tensorRT已经支持了直接用torch转成tensorRT的engine；但是其它的SDK框架，如MNN、TNN、Paddle-Lite、OpenVino等仍然只支持onnx格式的模型转换；并且，onnx本身也是一种很好用的模型框架，可以很方便地在上面做开发；
+
+```
+import torch
+# 加载你的模型
+model = build_model(config.model)
+checkpoint = torch.load(model_path, map_location=lambda storage, loc: storage)
+load_model_weight(model, checkpoint)
+
+# 设置输入的大小
+input_shape = (320, 192)  # W H
+dummy_input = torch.autograd.Variable(torch.randn(1, 3, input_shape[1],input_shape[0]))  # N, C, H, W
+
+# 设置输出节点名称，便于后续部署
+output_names = ["s8_cls", "s8_reg", "s16_cls", "s16_reg"]
+model.eval()
+torch.onnx.export(
+    model,
+    dummy_input,
+    output_path,
+    verbose=True,
+    keep_initializers_as_inputs=False,
+    do_constant_folding=True,
+    training=False,
+    opset_version=11,
+    output_names=output_names,
+)
+
+```
+
+其它常用框架也基本都有导出为onnx模型的方式，可以通过搜索引擎很容易得到相关结果，再次不作过多介绍。
+
+导出模型为onnx以后，如果不需要做模型量化，可以直接将onnx模型转换为所需的格式后进行模型部署；如果想快速完成部署，可以使用在线模型转换的工具来完成模型转换 https://convertmodel.com/；
+
+<br>
+
+### 2.2 onnx模型结构优化 ###
+
+onnx模型结构优化，一方面是为后续的模型量化做准备；另一方面是减少了输入和输出部分的计算，这部分计算对云端的算力而言可能是无关紧要的，但是对端上的微弱算力而言，这部分计算能省则省吧。
+
+
+simplify
+
+
+optimize
+
+预处理融合
+
+sigmoid移除
+
+
+模型导出为onnx
+模型结构优化: optimize、simplify、预处理融合、
+PTQ量化
+量化效果评估: 速度&精度
+简单PTQ量化
+自定义scale值
+量化问题排查工具polgygraph
+QAT量化
+QDQ
 
 
 
-onnx2trt是用于进行tensorRT的int8模型量化的工具; 在进行int8模型量化时，某些int8 tensorRT模型的精度会出现一定程度的下降。而当前tensorRT默认使用的校准算法是Entropy, 为此特意开发onnx2trt工具来优化量化模型的精度。
 
 
 
-## 安装
-python36 (py37会遇到pycuda安装的问题)
+### 3.1 量化
 
-pip install nvidia-pyindex 
-pip install nvidia-tensorrt  
-pip install pycuda  
-pip install sympy  
+*3.1.1 量化的理论基础* 
 
 
-
-## tensorRT量化存在的问题
-
-1. 大模型的量化误差累积
-   在进行模型的量化校准时，通常的做法是先用fp32模型进行一遍infer，然后统计每个节点的动态范围。这样的做法简单快捷，做一遍infer即可得到整个模型所有节点的动态范围。
-   但是，当层数较多时，量化的误差会不断累积；距离模型输入越远，这种量化误差越大。
+*3.1.2 量化的计算过程*  
 
 
-2. 量化后阈值偏移
-   当某个节点的输出数量比较小时，节点输出的cosine相似度已经很高，但是却出现了阈值偏移；
-   例如：fp32_out = [-6.223839, 3.5978181, -2.4270086], int8_out = [-2.37992859, 1.80094731, -1.93005347]
-   如果这个输出后接的是softmax结构的话，这种阈值偏移对最终精度的影响会比较小；
-   但是如果这里输出的是分数score的话，就会带来一些不利于实际部署的结果：例如recall降低，precision升高的变化；这时需要重新调整阈值来维持precision或者recall不变，以保证模型部署的效果。
-   bias correction相关: https://zhuanlan.zhihu.com/p/450227567
+*3.1.3 常用的量化工具箱* 
+
+*3.1.4 PTQ量化*
+
+- 简单量化
+- balance vector(weight equalization)
+- bias correction
 
 
-TODO:  
-- [ ] QDQ量化工具: 使用QDQ方式进行tensorRT的模型量化.  
-   - <img width="1000" alt="image" src="https://user-images.githubusercontent.com/100257957/180491664-ec2fc0ab-db9b-45b1-a758-8d718a217ecc.png">
-   - 需要直到tensorRT做了哪些网络节点的优化，才能方便地插入QDQ节点；
-- [ ] 量化精度损失分析工具:    
-   - tensorRT自带量化分析工具polygraph: https://zhuanlan.zhihu.com/p/535021438 
-   - 分析流程示例：https://blog.csdn.net/TracelessLe/article/details/120656484
-   - 给定每个节点的量化scale值，计算每一层的量化前后的cosine值.   
-   - 给定每个节点的量化scale值，计算这一层量化对最终输出的莲花cosine值.   
-- [ ] 自定义scale计算工具/自定义calibrator:     
-   - 用于trt exec生成trt engine(隐式设置精度). 
-   - 用于QDQ生成trt engine(显式设置精度). 
+*3.1.5 QAT量化*
 
+- QDQ模式介绍
+- QDQ流程优化
+
+
+3.2 剪枝
+
+
+
+3.3 蒸馏
+
+
+## 3. 模型部署
+
+一般步骤:  
+- 模型导出为onnx  
+- 模型结构优化: optimize、simplify、预处理融合、sigmoid移除  
+- PTQ量化
+    - 量化效果评估: 速度&精度
+    - 简单PTQ量化
+    - 自定义scale值
+    - 量化问题排查工具polgygraph
+- QAT量化
+    - QDQ
+    - 
+    - 
+
+
+
+
+## 5. 参考
+
+模型量化：
+
+模型部署：
+1. tiny-tensorRT
+2. micronet
+3. ppq
+4. onnx-runtime quantization
+5. ppl
+6. polygraphy
+7 
