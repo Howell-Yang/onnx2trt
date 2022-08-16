@@ -56,7 +56,7 @@ torch.onnx.export(
 
 ```
 
-其它常用框架也基本都有导出为onnx模型的方式，可以通过搜索引擎很容易得到相关结果，再次不作过多介绍。
+其它常用框架基本都有导出为onnx模型的代码，可以通过搜索引擎很容易得到相关结果，在此不作介绍。
 
 导出模型为onnx以后，如果不需要做模型量化，可以直接将onnx模型转换为所需的格式后进行模型部署；如果想快速完成部署，可以使用在线模型转换的工具来完成模型转换 https://convertmodel.com/；
 
@@ -72,7 +72,7 @@ onnx模型结构优化，一方面是为后续的模型量化做准备；另一�
 
 optimize的目的是进行算子的融合, 从而减少计算量；例如fuse_bn_into_conv, fuse_concat_into_reshape; 详见[onnx-optimizer](https://github.com/onnx/optimizer);
 <br>
-simplify的目的是消除onnx模型中的多余算子。从torch得到的onnx模型中，会存在一些从tensor计算出常量的操作，例如Reshape算子会从tensor中获取形状后再做resize；这就导致onnx模型中存在某些不必要的节点；因此，[onnx-simplifier](https://github.com/daquexian/onnx-simplifier)会对整个网络进行一次推理，然后将这类多余的算子替换成常量；
+simplify的目的是消除onnx模型中的多余算子。从torch得到的onnx模型中，会存在一些从tensor计算出常量的操作，例如Reshape算子会从tensor中获取形状后给Resize算子；这就导致onnx模型中存在某些不必要的节点(最常见的是Gather节点)；因此，[onnx-simplifier](https://github.com/daquexian/onnx-simplifier)会对整个网络进行一次推理，然后将这类多余的算子替换成常量；
 <br>
 
 使用在线网站，可以便捷地进行以上操作：https://www.convertmodel.com/#input=onnx&output=onnx；
@@ -81,15 +81,15 @@ simplify的目的是消除onnx模型中的多余算子。从torch得到的onnx�
 
 *2.2.2 预处理融合*  
 
-在onnx-optimizer中，有一个常见的操作是将Conv-BN结构中的BN层融合进Conv中，其原理可以简单理解为:
+在onnx-optimizer中，有一个操作是将Conv-BN结构中的BN层融合进Conv中，其原理可以简单理解为:
 - Conv: Y = k * x + b
 - BN:   Z = (Y - m)/s
 - Conv-BN: Z = (k * x + b - m)/s = k/s * x + (b - m)/s
 - new Conv: k1 = k/s, b1 = (b-m)/s, Z = k1 * x + b1
 
-那么，在某些模型中BN是放在Conv前面是，BN-Conv是否可以进行融合呢？答案是当Conv层没有padding时，也是可以融合的；但是当Conv层的padding>0时，BN-Conv的融合会导致输出的feature map在边界上存在diff；具体原理可以通过分析BN-Conv的计算过程得到，再次不作推导；
+那么，在某些模型中BN是放在Conv的，这种BN-Conv是否可以进行融合呢？答案是当Conv层没有padding(padding=0)时，也是可以融合的；但是当Conv层有padding时，BN-Conv的融合会导致输出的feature map与原始输出相比，在边界上存在diff；具体原理可以通过分析BN-Conv的计算过程得到，在此不作推导；
 
-在将图片输入到模型前，常常会进行减均值除方差的操作；基于BN-Conv层融合的原理，这个normalize过程也同样可以融合到Conv层中(需要Conv层不带padding)；在端上硬件算力很小的情况下，这一融合也是十分有必要的；
+在将图片输入到模型前，常常会进行减均值除方差(normalize)的操作；基于BN-Conv层融合的原理，这个normalize过程也同样可以融合到Conv层中(需要Conv层不带padding)；在端上硬件算力很小的情况下，这一融合也是十分有必要的；
 
 <br>
 

@@ -5,6 +5,15 @@ from onnx import version_converter
 import onnx
 import sys
 
+def get_post_nodes(onnx_model, tensor_name):
+    post_nodes = []
+    for node in onnx_model.graph.node:
+        for input_tensor in node.input:
+            if input_tensor == tensor_name:
+                post_nodes.append(node)
+                break
+    return post_nodes
+
 
 def remove_useless_constants(model):
     all_nodes = []
@@ -42,7 +51,7 @@ def remove_initializers_from_inputs(model):
         if initializer.name in name_to_input:
             inputs.remove(name_to_input[initializer.name])
 
-        post_nodes = OnnxModel.get_post_nodes(model, initializer.name)
+        post_nodes = get_post_nodes(model, initializer.name)
         if len(post_nodes) == 0:
             unused_initializers.append(initializer)
 
