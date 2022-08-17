@@ -107,7 +107,7 @@ sigmoid函数中的exp计算以及除法运算，是比较耗时的；当模型�
 
 *2.2.4 RepConv融合*
 
-RepConv是一种有效增加模型容量的技术。在训练时添加额外的卷积层，在部署时通过权重融合去掉这部分计算。通常情况下，RepConv的权重融合是在pytorch层面做的，但是当训练代码比较复杂或者重复代码较多时，在onnx层面进行权重的融合，可能是一个更好的选择；
+RepConv是一种有效增加模型容量的技术。在训练时添加额外的卷积层，在部署时通过权重融合去掉这部分计算。通常情况下，RepConv的权重融合是在pytorch层面做的，但是当训练代码比较复杂或者重复代码较多时，在onnx层面进行权重的融合，可能是一个更好的选择；相关原理参见论文: [RepVGG: Making VGG-style ConvNets Great Again](https://arxiv.org/abs/2101.03697).
 
 ![RepConv](https://miro.medium.com/max/1400/1*87dCul2yHq0_dRfV3nEubg.png)
 
